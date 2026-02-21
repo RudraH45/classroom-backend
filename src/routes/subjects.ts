@@ -13,22 +13,30 @@ router.get('/', async(req, res) => {
     try {
         // Fetch subjects from the database (replace with actual DB call)
         const {search , department, page = 1, limit = 10} = req.query;
-        const currentPage = Math.max(1, +page);
-        const limitPerPage = Math.max(1, +limit);
+
+        const currentPage = Math.max(1, Number(page) || 1);
+        const limitPerPage = Math.max(1, Math.min(100, Number(limit) || 10));
         const offset = (currentPage - 1) * limitPerPage;
 
         const filterConditions = [];
 
+        // Helper to escape LIKE wildcards
+        function escapeLikePattern(value: string): string {
+            return value.replace(/[%_\\]/g, '\\$&');
+        }
+
         if(search){
-            filterConditions.push(or(
-                ilike(subjects.name, `%${search}%`),
-                ilike(subjects.code, `%${search}%`),
+           const escapedSearch = escapeLikePattern(String(search));
+           filterConditions.push(or(
+              ilike(subjects.name, `%${escapedSearch}%`),
+              ilike(subjects.code, `%${escapedSearch}%`),
             ));
         }
 
         if(department){
+            const escapedDepartment = escapeLikePattern(String(department));
             filterConditions.push(
-                ilike(departments.name , `%${department}%`)
+                ilike(departments.name , `%${escapedDepartment}%`)
             )
         }
 
@@ -40,7 +48,7 @@ router.get('/', async(req, res) => {
         .leftJoin(departments, eq(subjects.departmentId, departments.id))
         .where(whereClause)
 
-        const totalCount = countResult[0]?.count?? 0;
+        const totalCount = Number(countResult[0]?.count) || 0;
 
         const subjectLists = await db
          .select({
