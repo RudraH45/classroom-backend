@@ -2,11 +2,15 @@ import express from "express";
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 // import { demoUsers } from './db/schema';
+import subjectRoutes from './routes/subjects';
 
 const app = express();
 const port = 8000;
 
 app.use(express.json());
+app.use('/api/subjects', subjectRoutes);
+
+
 
 app.get("/", (req, res) => {
   res.send("Hello ClassRoom Managment API");
